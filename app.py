@@ -1,4 +1,3 @@
-#!flask/bin/python
 from flask import Flask, make_response
 from prometheus import *
 
@@ -11,4 +10,5 @@ def index():
     return response
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0")
+    from waitress import serve
+    serve(app, host="0.0.0.0", port=5005)
