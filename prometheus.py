@@ -1,4 +1,4 @@
-import os
+import os,stat
 from time import sleep
 
 service = service = os.uname()[1]
@@ -108,6 +108,9 @@ def gather_metrics():
 
 
 def tail_log_file():
+    if not os.path.exists(log_file):
+        open(log_file, 'w').close()
+        os.chmod(log_file, 0o777)
     current = open(log_file, "r")
     curino = os.fstat(current.fileno()).st_ino
     current.seek(0, os.SEEK_END)
@@ -116,6 +119,8 @@ def tail_log_file():
         if not line:
             sleep(0.1)
             try:
+                if oct(os.stat(log_file).st_mode)[-3:] != '777':
+                    os.chmod(log_file, 0o777)
                 if os.stat(log_file).st_ino != curino:
                     new = open(log_file, "r")
                     current.close()
@@ -123,6 +128,11 @@ def tail_log_file():
                     curino = os.fstat(current.fileno()).st_ino
                     continue
             except IOError:
+                if not os.path.exists(log_file):
+                    open(log_file, 'w').close()
+                    os.chmod(log_file, 0o777)
+                    current = open(log_file, "r")
+                    curino = os.fstat(current.fileno()).st_ino
                 pass
         else:
             line.replace('\n','')
