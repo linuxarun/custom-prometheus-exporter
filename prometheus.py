@@ -3,13 +3,16 @@ from time import sleep
 
 service = service = os.uname()[1]
 
-def main():
-    gather_metrics()
-
 metrics_data_map = {}
 
-metrics_file = "/root/prometheus/data/metrics_data"
-log_file = "/var/log/application_metrics.log"
+metrics_file_path = "/root/prometheus/data/"
+metrics_file = metrics_file_path + "metrics_data"
+
+log_file_path = "/appl/log/metrics/"
+log_file = log_file_path + "application_metrics.log"
+
+def main():
+    gather_metrics()
 
 def prometheus():
     f = open(metrics_file,"r")
@@ -66,6 +69,9 @@ def write_metrics():
                 for item in data_value[0]:
                     metric_str += item.split('=')[0] + "=" + "\"" + item.split('=')[1] + "\"" + ","
                 metric_str += "} " + str(data_value[2]) + "\n"
+    
+    if not os.path.exists(metrics_file_path):
+        os.makedirs(metrics_file_path)
     f = open(metrics_file,"w")
     f.write(metric_str)
     f.close()
@@ -108,36 +114,42 @@ def gather_metrics():
 
 
 def tail_log_file():
-    if not os.path.exists(log_file):
-        open(log_file, 'w').close()
-        os.chmod(log_file, 0o777)
-    current = open(log_file, "r")
-    curino = os.fstat(current.fileno()).st_ino
-    current.seek(0, os.SEEK_END)
     while True:
-        line = current.readline()
-        if not line:
-            sleep(0.1)
-            try:
-                if oct(os.stat(log_file).st_mode)[-3:] != '777':
-                    os.chmod(log_file, 0o777)
-                if os.stat(log_file).st_ino != curino:
-                    new = open(log_file, "r")
-                    current.close()
-                    current = new
-                    curino = os.fstat(current.fileno()).st_ino
-                    continue
-            except IOError:
-                if not os.path.exists(log_file):
-                    open(log_file, 'w').close()
-                    os.chmod(log_file, 0o777)
-                    current = open(log_file, "r")
-                    curino = os.fstat(current.fileno()).st_ino
-                pass
-        else:
-            line.replace('\n','')
-            line.replace('\r\n','')
-            yield line
+        try:
+            if not os.path.exists(log_file_path):
+                os.makedirs(log_file_path)
+            if not os.path.exists(log_file):
+                open(log_file, 'w').close()
+                os.chmod(log_file, 0o777)
+            current = open(log_file, "r")
+            curino = os.fstat(current.fileno()).st_ino
+            current.seek(0, os.SEEK_END)
+            while True:
+                line = current.readline()
+                if not line:
+                    sleep(0.1)
+                    try:
+                        if oct(os.stat(log_file).st_mode)[-3:] != '777':
+                            os.chmod(log_file, 0o777)
+                        if os.stat(log_file).st_ino != curino:
+                            new = open(log_file, "r")
+                            current.close()
+                            current = new
+                            curino = os.fstat(current.fileno()).st_ino
+                            continue
+                    except IOError:
+                        if not os.path.exists(log_file):
+                            open(log_file, 'w').close()
+                            os.chmod(log_file, 0o777)
+                            current = open(log_file, "r")
+                            curino = os.fstat(current.fileno()).st_ino
+                        pass
+                else:
+                    line.replace('\n','')
+                    line.replace('\r\n','')
+                    yield line
+        except IOError:
+            pass
 
 if __name__ == "__main__":
     main()
