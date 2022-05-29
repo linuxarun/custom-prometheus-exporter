@@ -85,9 +85,13 @@ def gather_metrics():
                 if data_item is None or data_item == "":
                     continue
                 pair = data_item.split('=')
-                if len(pair) != 2:
+                if len(pair) < 2:
                     continue
                 metrics_map[pair[0]] = pair[1]
+
+            if not metrics_map:
+                continue
+
             try:
                 metric = metrics_map.pop('metric')
             except Exception as e:
@@ -145,8 +149,13 @@ def tail_log_file():
                             curino = os.fstat(current.fileno()).st_ino
                         pass
                 else:
-                    line.replace('\n','')
-                    line.replace('\r\n','')
+                    line = line.replace('\n','')
+                    line = line.replace('\r','')
+                    line = line.replace('\b','')
+                    line = line.replace('\f','')
+                    line = line.replace('\t','')
+                    if not line:
+                        continue
                     yield line
         except IOError:
             pass
